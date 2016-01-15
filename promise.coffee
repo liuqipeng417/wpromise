@@ -13,19 +13,29 @@ class Promise
     this.handlers = []
     this._doPromise.call this, resolver
 
-  _doPromise: (resolver) ->
+  _doPromise: (resolver, x) ->
     called = false
     self = this
     try
       # 立即调用 resolve
-      resolver (value) ->
-        if !called
-          self.resolve value
-          called = yes
-      , (reason) ->
-        if !called
-          self.reject reason
-          called = yes
+      if !x
+        resolver (value) ->
+          if !called
+            self.resolve value
+            called = yes
+        , (reason) ->
+          if !called
+            self.reject reason
+            called = yes
+      else
+        resolver.call x, (value) ->
+            if !called
+              self.resolve value
+              called = yes
+          , (reason) ->
+            if !called
+              self.reject reason
+              called = yes
     catch e
       if !called
         self.reject e
@@ -39,7 +49,7 @@ class Promise
         throw new TypeError 'dead loop'
 
       if value instanceof Promise
-        this._doPromise(value.then)
+        this._doPromise(value.then, value)
         ###
         value.then (x) ->
           self.resolve x
